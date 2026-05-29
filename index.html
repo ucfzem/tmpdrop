@@ -213,6 +213,7 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 const params = new URLSearchParams(window.location.search);
 const shareId = params.get('d');
+var BASE = window.location.pathname.replace(/\/?$/, '/');
 
 if (shareId) {
   showDownloadPage(shareId);
@@ -357,7 +358,7 @@ function setupUpload() {
       progressFill.style.width = '100%';
 
       // 3. Show result
-      var link = window.location.origin + window.location.pathname.split('?')[0] + '?d=' + shareId;
+      var link = window.location.origin + BASE + '?d=' + shareId;
       shareLink.textContent = link;
       shareLink.href = link;
       result.classList.add('show');
@@ -412,7 +413,7 @@ async function showDownloadPage(id) {
           <div style="font-size:3rem;margin-bottom:1rem;">🔗</div>
           <div style="font-weight:600;margin-bottom:0.5rem;">Lien invalide ou expiré</div>
           <div style="font-size:0.85rem;color:var(--text-dim);">Les fichiers sont supprimés après 24h.</div>
-          <a href="/" class="btn btn-primary" style="margin-top:1.5rem;">Nouvel upload</a>
+          <a id="homeLink" href="/" class="btn btn-primary" style="margin-top:1.5rem;">Nouvel upload</a>
         </div>
         <div class="footer">TmpDrop · Propulsé par Supabase</div>
       `;
@@ -435,7 +436,7 @@ async function showDownloadPage(id) {
         <div class="expires">⏳ Expire dans ${hoursLeft}h ${minutesLeft}min</div>
       </div>
       <div class="card" style="text-align:center;">
-        <a href="/" class="btn btn-outline">📤 Partager un fichier</a>
+        <a href="/" class="btn btn-outline" id="homeLink2">📤 Partager un fichier</a>
       </div>
       <div class="footer">TmpDrop · Propulsé par Supabase</div>
     `;
@@ -445,7 +446,7 @@ async function showDownloadPage(id) {
       <div class="card error-msg">
         <div style="font-size:3rem;margin-bottom:1rem;">⚠️</div>
         <div style="font-weight:600;">Erreur de chargement</div>
-        <a href="/" class="btn btn-primary" style="margin-top:1.5rem;">Réessayer</a>
+        <a href="/" class="btn btn-primary" style="margin-top:1.5rem;" id="homeLink3">Réessayer</a>
       </div>
       <div class="footer">TmpDrop · Propulsé par Supabase</div>
     `;
@@ -463,6 +464,8 @@ function esc(s) {
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m];
   });
 }
+// Fix home links for subpath (GitHub Pages)
+document.querySelectorAll('[id^=homeLink]').forEach(function(el){ el.href = BASE; });
 </script>
 </body>
 </html>
