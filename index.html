@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>TmpDrop — Partage temporaire</title>
 <meta name="description" content="Partagez des fichiers en toute simplicité. Suppression automatique après 24h.">
 <meta property="og:type" content="website">
@@ -28,39 +28,42 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem 1rem;
+  justify-content: center;
+  padding: 1rem;
 }
 .container {
   width: 100%;
-  max-width: 480px;
+  max-width: min(92vw, 520px);
 }
 .logo {
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.15rem;
+  text-align: center;
 }
 .logo span { color: var(--gold); }
 .tagline {
   color: var(--text-dim);
-  font-size: 0.85rem;
-  margin-bottom: 2rem;
+  font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+  margin-bottom: clamp(1rem, 4vw, 2.5rem);
+  text-align: center;
 }
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: clamp(1rem, 3vw, 2rem);
   margin-bottom: 1rem;
 }
 .drop-zone {
   border: 2px dashed var(--border);
   border-radius: var(--radius);
-  padding: 2rem 1rem;
+  padding: clamp(1.5rem, 5vw, 3rem) 1rem;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s;
-  position: relative;
+  -webkit-tap-highlight-color: transparent;
 }
 .drop-zone:hover, .drop-zone.dragover {
   border-color: var(--gold);
@@ -72,11 +75,11 @@ body {
 }
 .drop-zone input { display: none; }
 .drop-icon {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 8vw, 3.5rem);
   margin-bottom: 0.5rem;
   opacity: 0.5;
 }
-.drop-text { color: var(--text-dim); font-size: 0.9rem; }
+.drop-text { color: var(--text-dim); font-size: clamp(0.8rem, 2.5vw, 1rem); }
 .drop-text strong { color: var(--text); }
 .file-info {
   display: none;
@@ -88,20 +91,22 @@ body {
   border-radius: 8px;
 }
 .file-info.show { display: flex; }
-.file-info .name { flex:1; font-size: 0.85rem; word-break: break-all; }
-.file-info .size { color: var(--text-dim); font-size: 0.75rem; white-space: nowrap; }
+.file-info .name { flex:1; font-size: clamp(0.8rem, 2vw, 0.9rem); word-break: break-all; }
+.file-info .size { color: var(--text-dim); font-size: clamp(0.7rem, 1.8vw, 0.8rem); white-space: nowrap; }
 .btn {
   display: block;
   width: 100%;
-  padding: 0.9rem;
+  padding: clamp(0.75rem, 2.5vw, 1rem);
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s;
   text-align: center;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-primary { background: var(--gold); color: #0d0b08; }
@@ -131,7 +136,7 @@ body {
 .result {
   display: none;
   margin-top: 1rem;
-  padding: 1rem;
+  padding: clamp(0.8rem, 2vw, 1.2rem);
   background: rgba(201,168,76,0.08);
   border-radius: 8px;
   text-align: center;
@@ -140,7 +145,7 @@ body {
 .result .link {
   display: block;
   color: var(--gold);
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
   word-break: break-all;
   margin: 0.5rem 0;
   padding: 0.5rem;
@@ -148,29 +153,25 @@ body {
   border-radius: 6px;
   text-decoration: none;
 }
-.result .hint { color: var(--text-dim); font-size: 0.75rem; margin-top: 0.5rem; }
+.result .hint { color: var(--text-dim); font-size: clamp(0.7rem, 1.8vw, 0.8rem); margin-top: 0.5rem; }
 
 /* Download page */
-.file-card {
-  text-align: center;
-}
-.file-card .icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
+.file-card { text-align: center; }
+.file-card .icon { font-size: clamp(2.5rem, 8vw, 4rem); margin-bottom: 1rem; }
 .file-card .fname {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 3vw, 1.3rem);
   font-weight: 600;
   margin-bottom: 0.3rem;
+  word-break: break-word;
 }
 .file-card .finfo {
   color: var(--text-dim);
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.95rem);
   margin-bottom: 1.5rem;
 }
 .file-card .expires {
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: clamp(0.7rem, 1.8vw, 0.85rem);
   margin-top: 1rem;
 }
 .error-msg {
@@ -182,7 +183,25 @@ body {
   margin-top: 2rem;
   text-align: center;
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: clamp(0.65rem, 1.8vw, 0.8rem);
+}
+
+/* TV / large screens */
+@media (min-width: 1400px) {
+  body { padding: 3rem; }
+  .container { max-width: 600px; }
+}
+@media (min-width: 2000px) {
+  body { padding: 4rem; }
+  .container { max-width: 700px; }
+  .drop-zone { padding: 4rem 2rem; }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  body { padding: 0.6rem; }
+  .card { padding: 0.8rem; }
+  .drop-zone { padding: 1rem 0.5rem; }
 }
 </style>
 </head>
