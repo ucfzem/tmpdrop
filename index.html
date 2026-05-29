@@ -182,6 +182,29 @@ body {
   border-radius: 6px;
   text-decoration: none;
 }
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: clamp(1.5rem, 5vw, 2.5rem) 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+  -webkit-tap-highlight-color: transparent;
+}
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+.drop-zone.has-file { border-color: var(--gold); border-style: solid; }
+.drop-zone input { display: none; }
+.drop-icon { font-size: clamp(2rem, 8vw, 3rem); margin-bottom: 0.5rem; opacity: 0.5; }
+.drop-text { color: var(--text-dim); font-size: clamp(0.8rem, 2.5vw, 1rem); }
+.file-info {
+  display: none; align-items: center; gap: 0.8rem;
+  margin-top: 1rem; padding: 0.8rem;
+  background: rgba(201,168,76,0.08); border-radius: 8px;
+}
+.file-info.show { display: flex; }
+.file-info .name { flex:1; font-size: clamp(0.8rem, 2vw, 0.9rem); word-break: break-all; }
+.file-info .size { color: var(--text-dim); font-size: clamp(0.7rem, 1.8vw, 0.8rem); white-space: nowrap; }
+
 .result .hint { color: var(--text-dim); font-size: clamp(0.7rem, 1.8vw, 0.8rem); margin-top: 0.5rem; }
 .share-buttons { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
 .share-btn {
@@ -264,9 +287,15 @@ function showUploadPage() {
     <div class="logo">Tmp<span>Drop</span></div>
     <p class="tagline">Partage temporaire · Auto-suppression 24h</p>
     <div class="card">
-      <input type="file" id="fileInput" style="display:block;width:100%;padding:0.8rem;background:rgba(201,168,76,0.08);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;margin-bottom:0.8rem;">
-      <div id="fileInfo" style="display:none;padding:0.6rem;background:rgba(201,168,76,0.08);border-radius:8px;margin-bottom:0.8rem;font-size:0.85rem;">
-        <span id="fileName"></span> · <span id="fileSize" style="color:var(--text-dim);"></span>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text" style="margin-bottom:0.5rem;">Glisse un fichier ici ou appuie pour choisir</div>
+        <button class="btn btn-outline" id="chooseFileBtn" type="button" style="width:auto;display:inline-block;padding:0.5rem 1.2rem;font-size:0.85rem;">Choisir un fichier</button>
+        <div class="file-info" id="fileInfo">
+          <span class="name" id="fileName"></span>
+          <span class="size" id="fileSize"></span>
+        </div>
       </div>
       <div id="statusMsg" style="display:none;font-size:0.85rem;margin-bottom:0.8rem;text-align:center;"></div>
       <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
@@ -286,8 +315,6 @@ function showUploadPage() {
         <div class="hint">Ce lien expire dans 24h</div>
         <button class="btn btn-primary" id="newUploadBtn" style="margin-top:1rem;">📤 Nouvel upload</button>
       </div>
-        <div class="hint">Ce lien expire dans 24h</div>
-      </div>
     </div>
     <div class="card" style="text-align:center;font-size:0.85rem;color:var(--text-dim);">
       <div style="margin-bottom:0.3rem;">📤 Fichiers jusqu'à 50 Mo · Gratuit</div>
@@ -300,7 +327,9 @@ function showUploadPage() {
 }
 
 function setupUpload() {
+  const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
+  const chooseBtn = document.getElementById('chooseFileBtn');
   const fileInfo = document.getElementById('fileInfo');
   const fileName = document.getElementById('fileName');
   const fileSize = document.getElementById('fileSize');
@@ -323,7 +352,8 @@ function setupUpload() {
     selectedFile = f;
     fileName.textContent = f.name;
     fileSize.textContent = formatSize(f.size);
-    fileInfo.style.display = 'block';
+    fileInfo.classList.add('show');
+    dropZone.classList.add('has-file');
     uploadBtn.disabled = false;
     uploadBtn.textContent = 'Uploader';
     setStatus('');
@@ -335,8 +365,22 @@ function setupUpload() {
     statusEl.style.color = isError ? '#e74c3c' : 'var(--text-dim)';
   }
 
+  dropZone.addEventListener('click', function(e) {
+    if (e.target !== chooseBtn) fileInput.click();
+  });
+  chooseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    fileInput.click();
+  });
   fileInput.addEventListener('change', function(e) {
     if (this.files && this.files.length) selectFile(this.files[0]);
+  });
+  dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+  dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
   });
 
   uploadBtn.addEventListener('click', async function() {
@@ -381,6 +425,7 @@ function setupUpload() {
       shareLink.href = link;
       result.classList.add('show');
       this.style.display = 'none';
+      fileInfo.classList.remove('show');
       fileInfo.style.display = 'none';
       setStatus('✅ Fichier partagé !');
 
