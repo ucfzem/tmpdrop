@@ -252,7 +252,7 @@ const params = new URLSearchParams(window.location.search);
 const shareId = params.get('d');
 var BASE = window.location.pathname.replace(/\/?$/, '/');
 
-if (shareId) {
+if (shareId && shareId.length > 5) {
   showDownloadPage(shareId);
 } else {
   showUploadPage();
@@ -264,18 +264,13 @@ function showUploadPage() {
     <div class="logo">Tmp<span>Drop</span></div>
     <p class="tagline">Partage temporaire · Auto-suppression 24h</p>
     <div class="card">
-      <div class="drop-zone" id="dropZone">
-        <input type="file" id="fileInput">
-        <div class="drop-icon">📁</div>
-        <div class="drop-text">Glisse un fichier ici ou <strong>parcours</strong></div>
-        <div class="file-info" id="fileInfo">
-          <span class="name" id="fileName"></span>
-          <span class="size" id="fileSize"></span>
-        </div>
+      <input type="file" id="fileInput" style="display:block;width:100%;padding:0.8rem;background:rgba(201,168,76,0.08);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.9rem;margin-bottom:0.8rem;">
+      <div id="fileInfo" style="display:none;padding:0.6rem;background:rgba(201,168,76,0.08);border-radius:8px;margin-bottom:0.8rem;font-size:0.85rem;">
+        <span id="fileName"></span> · <span id="fileSize" style="color:var(--text-dim);"></span>
       </div>
-      <div id="statusMsg" style="display:none;font-size:0.85rem;margin-top:0.8rem;text-align:center;"></div>
+      <div id="statusMsg" style="display:none;font-size:0.85rem;margin-bottom:0.8rem;text-align:center;"></div>
       <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-      <button class="btn btn-primary" id="uploadBtn" disabled>Sélectionnez un fichier</button>
+      <button class="btn btn-primary" id="uploadBtn" disabled>Choisissez un fichier</button>
       <div class="result" id="result">
         <div style="margin-bottom:0.5rem;color:var(--gold);font-weight:600;">✅ Fichier partagé !</div>
         <a class="link" id="shareLink" target="_blank"></a>
@@ -291,16 +286,15 @@ function showUploadPage() {
       </div>
     </div>
     <div class="card" style="text-align:center;font-size:0.85rem;color:var(--text-dim);">
-      <div style="margin-bottom:0.3rem;">📤 Fichiers jusqu'à 50 Mo</div>
+      <div style="margin-bottom:0.3rem;">📤 Fichiers jusqu'à 50 Mo · Gratuit</div>
       <div>⏳ Supprimés automatiquement après 24h</div>
     </div>
-    <div class="footer">TmpDrop · Propulsé par Supabase</div>
+    <div class="footer">TmpDrop · <a href="https://ucfzem.github.io/liens/" style="color:var(--text-dim);">ucfzem</a></div>
   `;
   setupUpload();
 }
 
 function setupUpload() {
-  const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const fileInfo = document.getElementById('fileInfo');
   const fileName = document.getElementById('fileName');
@@ -313,19 +307,18 @@ function setupUpload() {
   const copyBtn = document.getElementById('copyBtn');
   const statusEl = document.getElementById('statusMsg');
 
-  let selectedFile = null;
+  var selectedFile = null;
 
-  function selectFile(file) {
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
+  function selectFile(f) {
+    if (!f) return;
+    if (f.size > 50 * 1024 * 1024) {
       setStatus('Fichier trop volumineux. Maximum : 50 Mo.', true);
       return;
     }
-    selectedFile = file;
-    fileName.textContent = file.name;
-    fileSize.textContent = formatSize(file.size);
-    fileInfo.classList.add('show');
-    dropZone.classList.add('has-file');
+    selectedFile = f;
+    fileName.textContent = f.name;
+    fileSize.textContent = formatSize(f.size);
+    fileInfo.style.display = 'block';
     uploadBtn.disabled = false;
     uploadBtn.textContent = 'Uploader';
     setStatus('');
@@ -337,21 +330,13 @@ function setupUpload() {
     statusEl.style.color = isError ? '#e74c3c' : 'var(--text-dim)';
   }
 
-  dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', function(e) {
     if (this.files && this.files.length) selectFile(this.files[0]);
-  });
-  dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-    if (e.dataTransfer && e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
   });
 
   uploadBtn.addEventListener('click', async function() {
     if (!selectedFile) {
-      setStatus('Veuillez sélectionner un fichier d\'abord.', true);
+      setStatus('Veuillez sélectionner un fichier.', true);
       return;
     }
     this.disabled = true;
@@ -361,39 +346,24 @@ function setupUpload() {
     setStatus('');
 
     try {
-      var file = selectedFile;
-      var fileExt = file.name.split('.').pop();
-      var storagePath = String(Date.now()) + '_' + Math.random().toString(36).slice(2) + '.' + fileExt;
+      var f = selectedFile;
+      var ext = f.name.split('.').pop();
+      var storagePath = String(Date.now()) + '_' + Math.random().toString(36).slice(2) + '.' + ext;
 
-      // 1. Upload file to Supabase Storage
       var uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/tmp-files/' + storagePath, {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + ANON_KEY,
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-        body: file,
+        headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': f.type || 'application/octet-stream' },
+        body: f,
       });
       if (!uploadRes.ok) throw new Error('Upload échoué (code ' + uploadRes.status + ')');
       progressFill.style.width = '60%';
 
-      // 2. Create DB record
-      var shareId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+      var shareId = Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
       var fileUrl = SUPABASE_URL + '/storage/v1/object/public/tmp-files/' + storagePath;
       var recordRes = await fetch(SUPABASE_URL + '/rest/v1/uploads', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': ANON_KEY,
-          'Authorization': 'Bearer ' + ANON_KEY,
-        },
-        body: JSON.stringify({
-          file_url: fileUrl,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type || null,
-          share_id: shareId,
-        }),
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
+        body: JSON.stringify({ file_url: fileUrl, file_name: f.name, file_size: f.size, mime_type: f.type || null, share_id: shareId }),
       });
       if (!recordRes.ok) {
         var errText = await recordRes.text().catch(function(){ return ''; });
@@ -401,14 +371,13 @@ function setupUpload() {
       }
       progressFill.style.width = '100%';
 
-      // 3. Show result
       var link = window.location.origin + BASE + '?d=' + shareId;
       shareLink.textContent = link;
       shareLink.href = link;
       result.classList.add('show');
       this.style.display = 'none';
       fileInfo.style.display = 'none';
-      setStatus('✅ Fichier partagé avec succès !');
+      setStatus('✅ Fichier partagé !');
 
       copyBtn.onclick = function() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -417,17 +386,17 @@ function setupUpload() {
             setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
           });
         } else {
-          var range = document.createRange();
-          range.selectNodeContents(shareLink);
-          var sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
+          var r = document.createRange();
+          r.selectNodeContents(shareLink);
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
           document.execCommand('copy');
           copyBtn.textContent = '✅ Copié !';
           setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
         }
       };
-      // Native share (mobile)
+
       var shareBtn = document.getElementById('shareBtn');
       if (navigator.share) {
         shareBtn.style.display = 'block';
@@ -435,18 +404,18 @@ function setupUpload() {
           navigator.share({ title: 'TmpDrop', text: 'Fichier partagé sur TmpDrop', url: link });
         };
       }
-      // Social share buttons
+
       var shareUrl = encodeURIComponent(link);
       document.getElementById('shareWhatsApp').href = 'https://wa.me/?text=' + shareUrl;
       document.getElementById('shareTelegram').href = 'https://t.me/share/url?url=' + shareUrl + '&text=TmpDrop';
-      document.getElementById('shareTwitter').href = 'https://twitter.com/intent/tweet?text=' + shareUrl + '&via=tmpdrop';
+      document.getElementById('shareTwitter').href = 'https://twitter.com/intent/tweet?text=' + shareUrl;
       document.getElementById('shareFacebook').href = 'https://www.facebook.com/sharer/sharer.php?u=' + shareUrl;
       document.getElementById('shareButtons').style.display = 'flex';
 
     } catch (err) {
       setStatus('Erreur : ' + err.message, true);
       this.disabled = false;
-      this.textContent = selectedFile ? 'Uploader' : 'Sélectionnez un fichier';
+      this.textContent = selectedFile ? 'Uploader' : 'Choisissez un fichier';
       progressBar.classList.remove('show');
     }
   });
