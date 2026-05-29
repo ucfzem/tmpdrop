@@ -3,11 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-<title>TmpDrop — Partage temporaire</title>
-<meta name="description" content="Partagez des fichiers en toute simplicité. Suppression automatique après 24h.">
+<title>TmpDrop — Partage de fichiers temporaires gratuit</title>
+<meta name="description" content="Partagez des fichiers jusqu'à 50 Mo gratuitement. Hébergement temporaire, lien de téléchargement, suppression automatique après 24h. Simple, rapide, sans inscription.">
+<meta name="keywords" content="partage fichiers, transfert fichiers, temporaire, gratuit, WeTransfer gratuit, envoyer fichier">
+<link rel="canonical" href="https://ucfzem.github.io/tmpdrop/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="TmpDrop">
-<meta property="og:description" content="Partage de fichiers temporaires — 24h auto-destruction">
+<meta property="og:url" content="https://ucfzem.github.io/tmpdrop/">
+<meta property="og:title" content="TmpDrop — Partage de fichiers temporaires">
+<meta property="og:description" content="Partagez des fichiers jusqu'à 50 Mo. Lien de téléchargement, auto-suppression 24h. Gratuit, sans inscription.">
+<meta property="og:image" content="https://ucfzem.github.io/tmpdrop/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TmpDrop — Partage temporaire">
+<meta name="twitter:description" content="Partagez des fichiers gratuitement. Auto-suppression après 24h.">
+<meta name="twitter:image" content="https://ucfzem.github.io/tmpdrop/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='28' font-size='28'%3E📤%3C/text%3E%3C/svg%3E">
 <style>
 :root {
   --bg: #0d0b08;
@@ -242,7 +252,8 @@ function showUploadPage() {
       <div class="result" id="result">
         <div style="margin-bottom:0.5rem;color:var(--gold);font-weight:600;">✅ Fichier partagé !</div>
         <a class="link" id="shareLink" target="_blank"></a>
-        <button class="btn btn-outline" id="copyBtn">📋 Copier le lien</button>
+        <button class="btn btn-outline" id="copyBtn" style="margin-bottom:0.5rem;">📋 Copier le lien</button>
+        <button class="btn btn-outline" id="shareBtn" style="display:none;">📤 Partager</button>
         <div class="hint">Ce lien expire dans 24h</div>
       </div>
     </div>
@@ -367,14 +378,12 @@ function setupUpload() {
       setStatus('✅ Fichier partagé avec succès !');
 
       copyBtn.onclick = function() {
-        // Try clipboard API, fallback to select + copy
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(link).then(function() {
             copyBtn.textContent = '✅ Copié !';
             setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
           });
         } else {
-          // Fallback: select the link text
           var range = document.createRange();
           range.selectNodeContents(shareLink);
           var sel = window.getSelection();
@@ -385,6 +394,14 @@ function setupUpload() {
           setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
         }
       };
+      // Native share (mobile)
+      var shareBtn = document.getElementById('shareBtn');
+      if (navigator.share) {
+        shareBtn.style.display = 'block';
+        shareBtn.onclick = function() {
+          navigator.share({ title: 'TmpDrop', text: 'Fichier partagé sur TmpDrop', url: link });
+        };
+      }
 
     } catch (err) {
       setStatus('Erreur : ' + err.message, true);
@@ -464,8 +481,12 @@ function esc(s) {
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m];
   });
 }
-// Fix home links for subpath (GitHub Pages)
+  // Fix home links for subpath (GitHub Pages)
 document.querySelectorAll('[id^=homeLink]').forEach(function(el){ el.href = BASE; });
+
+// GA4 placeholder — replace G-XXXXXXXXXX with your real ID
+// (function(){ var s=document.createElement('script'); s.src='https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX'; s.async=true; document.head.appendChild(s); })();
+// window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js',new Date()); gtag('config','G-XXXXXXXXXX');
 </script>
 </body>
 </html>
