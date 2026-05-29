@@ -235,8 +235,9 @@ function showUploadPage() {
           <span class="size" id="fileSize"></span>
         </div>
       </div>
+      <div id="statusMsg" style="display:none;font-size:0.85rem;margin-top:0.8rem;text-align:center;"></div>
       <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-      <button class="btn btn-primary" id="uploadBtn" disabled>Uploader</button>
+      <button class="btn btn-primary" id="uploadBtn" disabled>Sélectionnez un fichier</button>
       <div class="result" id="result">
         <div style="margin-bottom:0.5rem;color:var(--gold);font-weight:600;">✅ Fichier partagé !</div>
         <a class="link" id="shareLink" target="_blank"></a>
@@ -265,13 +266,14 @@ function setupUpload() {
   const result = document.getElementById('result');
   const shareLink = document.getElementById('shareLink');
   const copyBtn = document.getElementById('copyBtn');
+  const statusEl = document.getElementById('statusMsg');
 
   let selectedFile = null;
 
   function selectFile(file) {
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) {
-      alert('Fichier trop volumineux. Maximum : 50 Mo.');
+      setStatus('Fichier trop volumineux. Maximum : 50 Mo.', true);
       return;
     }
     selectedFile = file;
@@ -280,46 +282,60 @@ function setupUpload() {
     fileInfo.classList.add('show');
     dropZone.classList.add('has-file');
     uploadBtn.disabled = false;
+    uploadBtn.textContent = 'Uploader';
+    setStatus('');
+  }
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.display = msg ? 'block' : 'none';
+    statusEl.style.color = isError ? '#e74c3c' : 'var(--text-dim)';
   }
 
   dropZone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) selectFile(e.target.files[0]);
+  fileInput.addEventListener('change', function(e) {
+    if (this.files && this.files.length) selectFile(this.files[0]);
   });
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', (e) => {
+  dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+  dropZone.addEventListener('drop', function(e) {
     e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+    this.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
   });
 
-  uploadBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = 'Upload en cours...';
+  uploadBtn.addEventListener('click', async function() {
+    if (!selectedFile) {
+      setStatus('Veuillez sélectionner un fichier d\'abord.', true);
+      return;
+    }
+    this.disabled = true;
+    this.textContent = 'Upload en cours...';
     progressBar.classList.add('show');
     progressFill.style.width = '0%';
+    setStatus('');
 
     try {
+      var file = selectedFile;
+      var fileExt = file.name.split('.').pop();
+      var storagePath = String(Date.now()) + '_' + Math.random().toString(36).slice(2) + '.' + fileExt;
+
       // 1. Upload file to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const storagePath = Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + fileExt;
-      const uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/tmp-files/' + storagePath, {
+      var uploadRes = await fetch(SUPABASE_URL + '/storage/v1/object/tmp-files/' + storagePath, {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer ' + ANON_KEY,
-          'Content-Type': selectedFile.type || 'application/octet-stream',
+          'Content-Type': file.type || 'application/octet-stream',
         },
-        body: selectedFile,
+        body: file,
       });
-      if (!uploadRes.ok) throw new Error('Upload échoué');
+      if (!uploadRes.ok) throw new Error('Upload échoué (code ' + uploadRes.status + ')');
       progressFill.style.width = '60%';
 
       // 2. Create DB record
-      const shareId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
-      const fileUrl = SUPABASE_URL + '/storage/v1/object/public/tmp-files/' + storagePath;
-      const recordRes = await fetch(SUPABASE_URL + '/rest/v1/uploads', {
+      var shareId = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+      var fileUrl = SUPABASE_URL + '/storage/v1/object/public/tmp-files/' + storagePath;
+      var recordRes = await fetch(SUPABASE_URL + '/rest/v1/uploads', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -328,34 +344,51 @@ function setupUpload() {
         },
         body: JSON.stringify({
           file_url: fileUrl,
-          file_name: selectedFile.name,
-          file_size: selectedFile.size,
-          mime_type: selectedFile.type || null,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || null,
           share_id: shareId,
         }),
       });
-      if (!recordRes.ok) throw new Error('Enregistrement échoué');
+      if (!recordRes.ok) {
+        var errText = await recordRes.text().catch(function(){ return ''; });
+        throw new Error('Enregistrement échoué: ' + errText);
+      }
       progressFill.style.width = '100%';
 
       // 3. Show result
-      const link = window.location.origin + window.location.pathname + '?d=' + shareId;
+      var link = window.location.origin + window.location.pathname.split('?')[0] + '?d=' + shareId;
       shareLink.textContent = link;
       shareLink.href = link;
       result.classList.add('show');
-      uploadBtn.style.display = 'none';
-      dropZone.style.display = 'none';
+      this.style.display = 'none';
+      fileInfo.style.display = 'none';
+      setStatus('✅ Fichier partagé avec succès !');
 
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(link).then(() => {
+      copyBtn.onclick = function() {
+        // Try clipboard API, fallback to select + copy
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(function() {
+            copyBtn.textContent = '✅ Copié !';
+            setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
+          });
+        } else {
+          // Fallback: select the link text
+          var range = document.createRange();
+          range.selectNodeContents(shareLink);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
           copyBtn.textContent = '✅ Copié !';
-          setTimeout(() => { copyBtn.textContent = '📋 Copier le lien'; }, 2000);
-        });
-      });
+          setTimeout(function(){ copyBtn.textContent = '📋 Copier le lien'; }, 2000);
+        }
+      };
 
     } catch (err) {
-      alert('Erreur : ' + err.message);
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = 'Uploader';
+      setStatus('Erreur : ' + err.message, true);
+      this.disabled = false;
+      this.textContent = selectedFile ? 'Uploader' : 'Sélectionnez un fichier';
       progressBar.classList.remove('show');
     }
   });
