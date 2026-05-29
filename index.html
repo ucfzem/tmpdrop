@@ -360,15 +360,14 @@ function showUploadPage() {
       <div id="statusMsg" style="display:none;font-size:0.85rem;margin-bottom:0.8rem;text-align:center;"></div>
       <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
       <button class="btn btn-primary" id="uploadBtn" disabled>Choisissez un fichier</button>
-      <div class="result" id="result">
-        <div style="margin-bottom:0.8rem;color:var(--gold);font-weight:600;">✅ Fichier partagé !</div>
+      <div class="result show" id="result">
+        <div id="successMsg" style="display:none;margin-bottom:0.8rem;color:var(--gold);font-weight:600;">✅ Fichier partagé !</div>
         <div class="copy-row">
           <a class="link-box" id="shareLink" target="_blank"></a>
           <button class="copy-btn" id="copyBtn">Copier</button>
         </div>
         <div id="uploadShareTiles"></div>
         <button class="btn btn-primary" id="newUploadBtn" style="margin-top:1rem;">📤 Nouvel upload</button>
-        <div class="hint">Ce lien expire dans 24h</div>
       </div>
     </div>
     <div class="card" style="text-align:center;font-size:0.85rem;color:var(--text-dim);">
@@ -391,7 +390,6 @@ function setupUpload() {
   const uploadBtn = document.getElementById('uploadBtn');
   const progressBar = document.getElementById('progressBar');
   const progressFill = document.getElementById('progressFill');
-  const result = document.getElementById('result');
   const shareLink = document.getElementById('shareLink');
   const copyBtn = document.getElementById('copyBtn');
   const statusEl = document.getElementById('statusMsg');
@@ -399,6 +397,19 @@ function setupUpload() {
 
   var selectedFile = null;
 
+  // Init share tiles with app URL on page load
+  var appUrl = window.location.origin + BASE;
+  document.getElementById('shareLink').textContent = appUrl;
+  document.getElementById('shareLink').href = appUrl;
+  document.getElementById('uploadShareTiles').innerHTML = shareTilesHTML(encodeURIComponent(appUrl), appUrl);
+  document.getElementById('copyBtn').onclick = function() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(appUrl).then(function() {
+        document.getElementById('copyBtn').textContent = '✅';
+        setTimeout(function(){ document.getElementById('copyBtn').textContent = 'Copier'; }, 2000);
+      });
+    }
+  };
 
   function selectFile(f) {
     if (!f) return;
@@ -484,10 +495,10 @@ function setupUpload() {
       var link = window.location.origin + BASE + '?d=' + sid;
       shareLink.textContent = link;
       shareLink.href = link;
-      result.classList.add('show');
       this.style.display = 'none';
       fileInfo.classList.remove('show');
       fileInfo.style.display = 'none';
+      document.getElementById('successMsg').style.display = 'block';
       setStatus('');
 
 
