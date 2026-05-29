@@ -8,7 +8,8 @@
 
 ## Repo & Access
 - GitHub: https://github.com/ucfzem/tmpdrop
-- GitHub token must have `repo` scope; remove from URL after push
+- GitHub token must have `repo` + `workflow` scopes; remove from URL after push
+- Token with workflow: `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` (may expire)
 
 ## Completed Work
 - Supabase SQL migration (uploads table, storage bucket, RLS policies)
