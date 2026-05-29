@@ -23,9 +23,9 @@ create policy "Anyone can upload"
     with check (true);
 
 -- Public can read by share_id
-create policy "Anyone can read by share_id"
+create policy "Anyone can read"
     on uploads for select
-    using (share_id = current_setting('request.share_id', true)::text);
+    using (true);
 
 -- Only service_role can delete (used by cleanup function)
 create policy "Service role can delete"
