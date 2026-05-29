@@ -9,7 +9,31 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Supabase Edge Function
+      - name: Delete expired files from storage
         run: |
-          curl -X POST "${{ secrets.SUPABASE_FUNCTION_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          # Find expired uploads via Supabase REST API
+          EXPIRED=$(curl -s "${{ secrets.SUPABASE_URL }}/rest/v1/uploads?select=id,file_url&expires_at=lt.now" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}")
+
+          if [ "$EXPIRED" = "[]" ] || [ -z "$EXPIRED" ]; then
+            echo "No expired files found"
+            exit 0
+          fi
+
+          echo "$EXPIRED" | jq -c '.[]' | while read -r item; do
+            ID=$(echo "$item" | jq -r '.id')
+            FILE_URL=$(echo "$item" | jq -r '.file_url')
+            FILE_PATH=$(echo "$FILE_URL" | sed 's|.*/tmp-files/||')
+
+            # Delete from storage
+            curl -s -X DELETE "${{ secrets.SUPABASE_URL }}/storage/v1/object/tmp-files/$FILE_PATH" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
+            # Delete from database
+            curl -s -X DELETE "${{ secrets.SUPABASE_URL }}/rest/v1/uploads?id=eq.$ID" \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+
+            echo "Deleted: $FILE_PATH"
+          done
