@@ -12,7 +12,7 @@
 - GitHub token must have `repo` + `workflow` scopes; remove from URL after push
 
 ## Supabase
-- URL: https://raopfvfwsuooynsqaeaz.supabase.co
+- URL: https://vjhcfbwuyebiesxslwhe.supabase.co
 - Anon key in frontend (safe for public RLS)
 - Bucket: `tmp-files` (public)
 - Table: `uploads`
